@@ -2,29 +2,31 @@ from pyspark.sql import SparkSession
 from pathlib import Path
 from pyspark.sql import functions as pyspark_funcs
 
+from time import perf_counter
+
+from data_visualization import save_charts
+
 INPUT_PATH = Path(__file__).resolve().parent / "data" / "prepared_data"
 
-def print_revenue_by_city(sales):
+def get_revenue_by_city(sales):
   revenue_by_city = (
     sales.groupBy("city")
     .agg(pyspark_funcs.sum("total_price_in_cents").alias("revenue_cents"))
     .orderBy(pyspark_funcs.desc("revenue_cents"))
   )
 
-  print("Revenue by city:")
-  revenue_by_city.show()
+  return revenue_by_city
 
-def print_revenue_by_category(sales):
+def get_revenue_by_category(sales):
   revenue_by_category = (
     sales.groupBy("category")
     .agg(pyspark_funcs.sum("total_price_in_cents").alias("revenue_cents"))
     .orderBy(pyspark_funcs.desc("revenue_cents"))
   )
 
-  print("Revenue by category:")
-  revenue_by_category.show()
+  return revenue_by_category
 
-def print_revenue_by_month(sales):
+def get_revenue_by_month(sales):
   revenue_by_month = (
     # temp col to group all sales from the same month
     sales.withColumn("month", pyspark_funcs.date_format("date", "yyyy-MM"))
@@ -33,18 +35,23 @@ def print_revenue_by_month(sales):
     .orderBy("month")
   )
 
-  print("Revenue by month:")
-  revenue_by_month.show()
+  return revenue_by_month
 
-def print_units_by_category(sales):
+def get_units_by_category(sales):
   units_by_category = (
     sales.groupBy("category")
     .agg(pyspark_funcs.sum("quantity").alias("units_sold"))
     .orderBy(pyspark_funcs.desc("units_sold"))
   )
 
-  print("Units sold by category:")
-  units_by_category.show()
+  return units_by_category
+
+ANALYSES_DICT = {
+  "revenue_by_city": get_revenue_by_city,
+  "revenue_by_category": get_revenue_by_category,
+  "revenue_by_month": get_revenue_by_month,
+  "units_by_category": get_units_by_category,
+}
 
 def main():
   spark = (
@@ -67,11 +74,27 @@ def main():
 
     sales = spark.read.parquet(*parquet_files)
     # sales.printSchema()
-    print_revenue_by_city(sales)
-    print_revenue_by_category(sales)
-    print_revenue_by_month(sales)
-    print_units_by_category(sales)
-    
+
+    results = {}
+    timings = {}
+
+    for name, analysis_func in ANALYSES_DICT.items():
+      start = perf_counter()
+
+      summary = analysis_func(sales)
+
+      results[name] = summary.collect()
+      timings[name] = perf_counter() - start
+
+      print(f"{name}: {len(results[name])} summary rows, ")
+      print(f"{timings[name]:.2f} seconds")
+
+    charts_dir = Path(__file__).resolve().parent / "output" / "charts"
+
+    chart_paths = save_charts(results, charts_dir)
+
+    print(f"Saved {len(chart_paths)} charts to {charts_dir}")
+
   finally:
     spark.stop()
 
