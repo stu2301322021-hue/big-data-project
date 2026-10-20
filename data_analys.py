@@ -4,10 +4,6 @@ from pyspark.sql import functions as pyspark_funcs
 
 from time import perf_counter
 
-from data_visualization import save_charts
-
-INPUT_PATH = Path(__file__).resolve().parent / "data" / "prepared_data"
-
 def get_revenue_by_city(sales):
   revenue_by_city = (
     sales.groupBy("city")
@@ -53,7 +49,7 @@ ANALYSES_DICT = {
   "units_by_category": get_units_by_category,
 }
 
-def main():
+def analyse_sales(input_path):
   spark = (
     SparkSession.builder
     .appName("UniSalesAnalysis")
@@ -62,15 +58,15 @@ def main():
   )
 
   try:
-    # spark.sparkContext.setLogLevel("WARN")
+    spark.sparkContext.setLogLevel("ERROR")
     # Stackoverflow solution to loading parquet files on windows
     parquet_files = [
       path.as_uri()
-      for path in sorted(INPUT_PATH.glob("*.parquet"))
+      for path in sorted(input_path.glob("*.parquet"))
     ]
 
     if not parquet_files:
-      raise FileNotFoundError(f"No Parquet files found in {INPUT_PATH}")
+      raise FileNotFoundError(f"No Parquet files found in {input_path}")
 
     sales = spark.read.parquet(*parquet_files)
     # sales.printSchema()
@@ -86,17 +82,10 @@ def main():
       results[name] = summary.collect()
       timings[name] = perf_counter() - start
 
-      print(f"{name}: {len(results[name])} summary rows, ")
-      print(f"{timings[name]:.2f} seconds")
-
-    charts_dir = Path(__file__).resolve().parent / "output" / "charts"
-
-    chart_paths = save_charts(results, charts_dir)
-
-    print(f"Saved {len(chart_paths)} charts to {charts_dir}")
-
+    return results, timings
   finally:
     spark.stop()
 
 if __name__ == "__main__":
-  main()
+  data_dir = Path(__file__).resolve().parent / "data"
+  analyse_sales(data_dir / "prepared_data")
