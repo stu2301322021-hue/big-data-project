@@ -6,6 +6,7 @@ from data_prep import prepare_sales
 from data_analys import analyse_sales
 from data_stats import run_city_stats
 from data_visualization import save_charts
+from data_report import save_report
 
 PROJECT_DIR = Path(__file__).resolve().parent
 DATA_DIR = PROJECT_DIR / "data"
@@ -46,6 +47,17 @@ def main():
   timings["visualization"] = perf_counter() - start
 
   timings["pipeline_total"] = perf_counter() - pipeline_start
+
+  report_path = save_report(
+    results=results,
+    city_stats=city_stats,
+    timings=timings,
+    chart_paths=chart_paths,
+    record_count=record_count,
+    output_path=OUTPUT_DIR / "report.html",
+  )
+
+  print(f"Report saved to: {report_path}")
 
   print(f"\nRecords processed: {record_count:,}")
   print(f"Charts saved: {len(chart_paths)}")
