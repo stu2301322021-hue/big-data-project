@@ -5,6 +5,7 @@ from pyspark.sql import functions as pyspark_funcs
 from time import perf_counter
 
 from data_visualization import save_charts
+from data_stats import run_city_stats
 
 INPUT_PATH = Path(__file__).resolve().parent / "data" / "prepared_data"
 
@@ -86,8 +87,7 @@ def main():
       results[name] = summary.collect()
       timings[name] = perf_counter() - start
 
-      print(f"{name}: {len(results[name])} summary rows, ")
-      print(f"{timings[name]:.2f} seconds")
+      print(f"{name}: {len(results[name])} summary rows, {timings[name]:.2f} seconds")
 
     charts_dir = Path(__file__).resolve().parent / "output" / "charts"
 
@@ -97,6 +97,15 @@ def main():
 
   finally:
     spark.stop()
+
+  # Ray start after Spark is stopped
+  city_stats, ray_elapsed = run_city_stats(INPUT_PATH)
+  timings["ray_city_statistics"] = ray_elapsed
+
+  record_count = sum(item["sales_count"] for item in city_stats)
+
+  print(f"Records processed: {record_count:,}")
+  print(f"Ray stage: {ray_elapsed:.2f} seconds")
 
 if __name__ == "__main__":
   main()

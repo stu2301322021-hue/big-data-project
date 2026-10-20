@@ -5,6 +5,7 @@ __pycache__/
 
 # Generated datasets
 data/
+output/
 
 # Local editor settings
 .vscode/
