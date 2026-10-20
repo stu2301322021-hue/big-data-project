@@ -29,7 +29,6 @@ def generate_sales(record_count, output_path):
   fake.seed_instance(420)
 
   output_path.parent.mkdir(parents=True, exist_ok=True)
-  start = perf_counter()
 
   with output_path.open("w", newline="", encoding="utf-8") as file:
     writer = csv.DictWriter(file, fieldnames=FIELDNAMES)
@@ -59,10 +58,15 @@ def generate_sales(record_count, output_path):
 
       writer.writerow(sale)
 
+if __name__ == "__main__":
+  # Make self sustaining if called as a standalone
+  data_dir = Path(__file__).resolve().parent / "data"
+  output_path = data_dir / "sales.csv"
+  record_count = 500_000
+
+  start = perf_counter()
+  generate_sales(record_count, output_path)
   elapsed = perf_counter() - start
+
   print(f"Generated {record_count:,} records in {elapsed:.2f} seconds")
   print(f"Saved to: {output_path.resolve()}")
-
-if __name__ == "__main__":
-  proj_dir = Path(__file__).resolve().parent
-  generate_sales(500_000, proj_dir / "data" / "sales.csv")
