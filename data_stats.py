@@ -5,6 +5,8 @@ import numpy as np
 import pandas as pd
 import ray
 
+import logging
+
 @ray.remote
 def calculate_city_stats(city, values):
   return {
@@ -20,7 +22,11 @@ def run_city_stats(input_path):
   # Read only the two columns needed for these calcs
   sales = pd.read_parquet(input_path, columns=["city", "total_price_in_cents"])
 
-  ray.init(num_cpus=2, include_dashboard=False)
+  ray.init(num_cpus=2,
+           include_dashboard=False,
+          #  Remove unnecessery log pollution
+           logging_level=logging.ERROR,
+           log_to_driver=False)
 
   try:
     tasks = [

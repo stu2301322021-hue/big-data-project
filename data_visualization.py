@@ -7,11 +7,11 @@ def save_charts(results, output_dir):
   output_dir.mkdir(parents=True, exist_ok=True)
 
   chart_specs = [
-      ("revenue_by_city", "city", "revenue_cents", "Revenue by city"),
-      ("revenue_by_category", "category", "revenue_cents", "Revenue by category"),
-      ("revenue_by_month", "month", "revenue_cents", "Monthly revenue"),
-      ("units_by_category", "category", "units_sold", "Units sold by category"),
-    ]
+    ("revenue_by_city", "city", "revenue_cents", "Revenue by city"),
+    ("revenue_by_category", "category", "revenue_cents", "Revenue by category"),
+    ("revenue_by_month", "month", "revenue_cents", "Monthly revenue"),
+    ("units_by_category", "category", "units_sold", "Units sold by category"),
+  ]
 
   chart_paths = {}
 

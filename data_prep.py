@@ -14,24 +14,14 @@ DATA_TYPES = {
 
 BLOCK_SIZE_STRING = "4MB"
 
-INPUT_PATH = Path(__file__).resolve().parent / "data" / "sales.csv"
-
-def main():
+def prepare_sales(input_path, output_path):
   start = perf_counter()
 
   sales = dd.read_csv(
-    str(INPUT_PATH),
+    str(input_path),
     blocksize=BLOCK_SIZE_STRING,
     dtype=DATA_TYPES,
   )
-
-  print(f"Partitions: {sales.npartitions}")
-
-  record_count = sales.shape[0].compute()
-  elapsed = perf_counter() - start
-
-  print(f"Records: {record_count:,}")
-  print(f"Read and count: {elapsed:.2f} seconds")
 
   # Convert the date string to datetime so invalid ones can become NaT
   sales["date"] = dd.to_datetime(
@@ -65,13 +55,6 @@ def main():
 
   valid_count = clean_sales.shape[0].compute()
 
-  print(f"Valid records: {valid_count:,}")
-  print(f"Rejected records: {record_count - valid_count:,}")
-  # print(clean_sales.head())
-
-  output_path = INPUT_PATH.parent / "prepared_data"
-  save_start = perf_counter()
-
   clean_sales.to_parquet(
     str(output_path),
     engine="pyarrow",
@@ -79,10 +62,16 @@ def main():
     overwrite=True,    # replace the previous output in data/prepared_data when rerunning
   )
 
-  save_elapsed = perf_counter() - save_start
-
-  print(f"Prepared data saved to: {output_path}")
-  print(f"Compute and save: {save_elapsed:.2f} seconds")
+  return valid_count
 
 if __name__ == "__main__":
-  main()
+  # Make self sustaining if called as a standalone
+  data_dir = Path(__file__).resolve().parent / "data"
+  output_path = data_dir / "prepared_data"
+
+  start = perf_counter()
+  valid_count = prepare_sales(data_dir / "sales.csv", output_path)
+  elapsed = perf_counter() - start
+
+  print(f"Prepared {valid_count:,} valid records in {elapsed:.2f} seconds")
+  print(f"Saved to: {output_path.resolve()}")
